@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model, Types } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export type KycStatus = 'pending' | 'submitted' | 'approved' | 'rejected';
 
@@ -104,15 +104,6 @@ const doctorSchema = new Schema<IDoctor>(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform: (_doc, ret) => {
-        delete ret.otp;
-        delete ret.otpExpiresAt;
-        delete ret.refreshToken;
-        delete ret.__v;
-        return ret;
-      },
-    },
   }
 );
 

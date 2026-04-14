@@ -38,14 +38,7 @@ const adminSchema = new Schema<IAdmin>(
     },
   },
   {
-    timestamps: true,
-    toJSON: {
-      transform: (_doc, ret) => {
-        delete ret.password;
-        delete ret.__v;
-        return ret;
-      },
-    },
+    timestamps: true
   }
 );
 

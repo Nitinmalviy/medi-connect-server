@@ -42,14 +42,6 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform: (_doc, ret) => {
-        delete ret.otp;
-        delete ret.otpExpiresAt;
-        delete ret.__v;
-        return ret;
-      },
-    },
   }
 );
 
