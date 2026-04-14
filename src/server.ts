@@ -2,8 +2,9 @@ import app from './app';
 import { env } from './config/env';
 import { connectDB } from './config/database';
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, async () => {
   console.log(`Server running on http://localhost:${env.PORT} [${env.NODE_ENV}]`);
+  await connectDB();
 });
 
 process.on('unhandledRejection', (err: Error) => {
