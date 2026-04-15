@@ -107,8 +107,6 @@ const doctorSchema = new Schema<IDoctor>(
   }
 );
 
-doctorSchema.index({ mobile: 1 });
-doctorSchema.index({ email: 1 });
 doctorSchema.index({ specializations: 1 });
 doctorSchema.index({ 'kyc.status': 1 });
 

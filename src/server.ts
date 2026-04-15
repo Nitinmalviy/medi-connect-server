@@ -1,14 +1,15 @@
 import app from './app';
 import { env } from './config/env';
 import { connectDB } from './config/database';
+import { logger } from './utils/logger';
 
 const server = app.listen(env.PORT, async () => {
-  console.log(`Server running on http://localhost:${env.PORT} [${env.NODE_ENV}]`);
+  logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Server started');
   await connectDB();
 });
 
 process.on('unhandledRejection', (err: Error) => {
-  console.error('Unhandled rejection:', err.message);
+  logger.error({ err }, 'Unhandled rejection');
   server.close(() => process.exit(1));
 });
 

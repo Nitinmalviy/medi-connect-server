@@ -1,7 +1,8 @@
 import { Doctor, IClinicAddress } from '../models/doctor.model';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
-import { generateOtp, otpExpiresAt, isOtpExpired, sendOtp } from '../utils/otp';
+import { generateOtp, otpExpiresAt, isOtpExpired, sendEmailOtp, sendOtp } from '../utils/otp';
 import { BadRequestError, NotFoundError, UnauthorizedError, ConflictError } from '../utils/AppError';
+import { env } from '../config/env';
 
 export const register = async (data: {
   name: string;
@@ -37,11 +38,43 @@ export const sendLoginOtp = async (mobile: string) => {
   await doctor.save();
 
   await sendOtp(mobile, otp);
-  return { message: 'OTP sent successfully' };
+  return { message: 'OTP sent successfully', ...(env.NODE_ENV === 'development' ? { otp } : {}) };
+};
+
+export const sendLoginOtpByEmail = async (email: string) => {
+  const normalized = email.trim().toLowerCase();
+  const doctor = await Doctor.findOne({ email: normalized });
+  if (!doctor) throw new NotFoundError('Doctor');
+
+  const otp = generateOtp();
+  doctor.otp = otp;
+  doctor.otpExpiresAt = otpExpiresAt();
+  await doctor.save();
+
+  await sendEmailOtp(normalized, otp);
+  return { message: 'OTP sent successfully', ...(env.NODE_ENV === 'development' ? { otp } : {}) };
 };
 
 export const verifyOtp = async (mobile: string, otp: string) => {
   const doctor = await Doctor.findOne({ mobile }).select('+otp +otpExpiresAt');
+  if (!doctor) throw new NotFoundError('Doctor');
+  if (!doctor.otp || !doctor.otpExpiresAt) throw new BadRequestError('OTP not requested');
+  if (isOtpExpired(doctor.otpExpiresAt)) throw new BadRequestError('OTP expired');
+  if (doctor.otp !== otp) throw new BadRequestError('Invalid OTP');
+
+  doctor.otp = undefined;
+  doctor.otpExpiresAt = undefined;
+  await doctor.save();
+
+  const accessToken = signAccessToken({ id: doctor._id.toString(), role: 'doctor' });
+  const refreshToken = signRefreshToken({ id: doctor._id.toString(), role: 'doctor' });
+
+  return { doctor, accessToken, refreshToken };
+};
+
+export const verifyOtpByEmail = async (email: string, otp: string) => {
+  const normalized = email.trim().toLowerCase();
+  const doctor = await Doctor.findOne({ email: normalized }).select('+otp +otpExpiresAt');
   if (!doctor) throw new NotFoundError('Doctor');
   if (!doctor.otp || !doctor.otpExpiresAt) throw new BadRequestError('OTP not requested');
   if (isOtpExpired(doctor.otpExpiresAt)) throw new BadRequestError('OTP expired');

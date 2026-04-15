@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IUser extends Document {
   name?: string;
   mobile: string;
+  email?: string;
   isVerified: boolean;
   otp?: string;
   otpExpiresAt?: Date;
@@ -23,6 +24,13 @@ const userSchema = new Schema<IUser>(
       unique: true,
       trim: true,
     },
+    email: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+    },
     isVerified: {
       type: Boolean,
       default: false,
@@ -41,10 +49,8 @@ const userSchema = new Schema<IUser>(
     },
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
-
-userSchema.index({ mobile: 1 });
 
 export const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);

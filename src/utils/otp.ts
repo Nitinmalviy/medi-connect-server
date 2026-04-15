@@ -17,4 +17,11 @@ export const sendOtp = async (mobile: string, otp: string): Promise<void> => {
     return;
   }
 };
+
+export const sendEmailOtp = async (email: string, otp: string): Promise<void> => {
+  if (env.NODE_ENV === 'development') {
+    console.log(`OTP for ${email}: ${otp}`);
+    return;
+  }
+};
  

@@ -1,13 +1,19 @@
 import { User } from '../models/user.model';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
-import { generateOtp, otpExpiresAt, isOtpExpired, sendOtp } from '../utils/otp';
+import { generateOtp, otpExpiresAt, isOtpExpired, sendEmailOtp, sendOtp } from '../utils/otp';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/AppError';
+import { env } from '../config/env';
 
-export const sendLoginOtp = async (mobile: string) => {
-  let user = await User.findOne({ mobile });
+export const sendLoginOtp = async (params: { mobile?: string; email?: string }) => {
+  const mobile = params.mobile?.trim();
+  const email = params.email?.trim().toLowerCase();
+  if (!mobile && !email) throw new BadRequestError('Mobile or email is required');
+
+  let user = await User.findOne({ ...(mobile ? { mobile } : {}), ...(email ? { email } : {}) });
 
   if (!user) {
-    user = await User.create({ mobile });
+    if (!mobile) throw new BadRequestError('Mobile required for first login');
+    user = await User.create({ mobile, ...(email ? { email } : {}) });
   }
 
   const otp = generateOtp();
@@ -15,12 +21,20 @@ export const sendLoginOtp = async (mobile: string) => {
   user.otpExpiresAt = otpExpiresAt();
   await user.save();
 
-  await sendOtp(mobile, otp);
-  return { message: 'OTP sent successfully' };
+  if (mobile) await sendOtp(mobile, otp);
+  if (email) await sendEmailOtp(email, otp);
+  return { message: 'OTP sent successfully', ...(env.NODE_ENV === 'development' ? { otp } : {}) };
 };
 
-export const verifyOtp = async (mobile: string, otp: string) => {
-  const user = await User.findOne({ mobile }).select('+otp +otpExpiresAt');
+export const verifyOtp = async (params: { mobile?: string; email?: string; otp: string }) => {
+  const mobile = params.mobile?.trim();
+  const email = params.email?.trim().toLowerCase();
+  const otp = params.otp.trim();
+  if (!mobile && !email) throw new BadRequestError('Mobile or email is required');
+
+  const user = await User.findOne({ ...(mobile ? { mobile } : {}), ...(email ? { email } : {}) }).select(
+    '+otp +otpExpiresAt'
+  );
   if (!user) throw new NotFoundError('User');
   if (!user.otp || !user.otpExpiresAt) throw new BadRequestError('OTP not requested');
   if (isOtpExpired(user.otpExpiresAt)) throw new BadRequestError('OTP expired');
